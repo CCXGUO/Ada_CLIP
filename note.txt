@@ -1,0 +1,3 @@
+我想要进行一个项目, 目标是完成图像正负对的对比学习. 你可以根据我接下来的请求,一步步的帮我完成我的目标吗
+
+首先我们需要进行图像正负对的收集以及dataloader的构建, 我有两个视频,视频已被分帧并存储在dir1和dir2中,这两个视频描述的是同一个过程. 我的思路是, 首先从dir1中挑选frameA, 确定与其最近邻的占总帧数的5%的帧,组成Set A, 然后从dir 2中找到与frame A处于同一时刻的frameB以及其近邻的占总帧数的5%的帧,组成Set B. 然后开始positive pair的构建, 即从Set A 与Set B的并集中随机选择一帧,与frame A组成positive pair. 然后开始 negtaive pair的构建, 从dir1和dir2除了SetA和SetB以外的帧中随机选择一帧,和frame A 组成 negative pair. 对dir1中的所有帧执行以上操作,完成数据集的构建.
