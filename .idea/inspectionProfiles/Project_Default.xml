@@ -1,0 +1,31 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="Eslint" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <value>
+          <list size="17">
+            <item index="0" class="java.lang.String" itemvalue="whisper" />
+            <item index="1" class="java.lang.String" itemvalue="openai" />
+            <item index="2" class="java.lang.String" itemvalue="gradio" />
+            <item index="3" class="java.lang.String" itemvalue="soundfile" />
+            <item index="4" class="java.lang.String" itemvalue="pyttsx3" />
+            <item index="5" class="java.lang.String" itemvalue="pre-commit" />
+            <item index="6" class="java.lang.String" itemvalue="librosa" />
+            <item index="7" class="java.lang.String" itemvalue="fairseq2" />
+            <item index="8" class="java.lang.String" itemvalue="datasets" />
+            <item index="9" class="java.lang.String" itemvalue="pycountry" />
+            <item index="10" class="java.lang.String" itemvalue="torchaudio" />
+            <item index="11" class="java.lang.String" itemvalue="sam-hq" />
+            <item index="12" class="java.lang.String" itemvalue="flow_vis" />
+            <item index="13" class="java.lang.String" itemvalue="MobileSAM" />
+            <item index="14" class="java.lang.String" itemvalue="davis2016-davis2017-davis2019-evaluation" />
+            <item index="15" class="java.lang.String" itemvalue="Pillow" />
+            <item index="16" class="java.lang.String" itemvalue="co-tracker" />
+          </list>
+        </value>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>

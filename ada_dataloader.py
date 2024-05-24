@@ -1,64 +1,65 @@
 import os
 import random
-import numpy as np
 from PIL import Image
-from sklearn.neighbors import NearestNeighbors
 from torch.utils.data import Dataset, DataLoader
-import torchvision.transforms as transforms
+from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 
+try:
+    from torchvision.transforms import InterpolationMode
+    BICUBIC = InterpolationMode.BICUBIC
+except ImportError:
+    BICUBIC = Image.BICUBIC
 
-# 定义函数加载帧
-def load_frames_from_dir(directory):
-    frames = []
-    for filename in sorted(os.listdir(directory)):
-        if filename.endswith('.jpg') or filename.endswith('.png'):
-            filepath = os.path.join(directory, filename)
-            frame = Image.open(filepath)
-            frames.append((filename, frame))
-    return frames
-
-
-# 定义计算最近邻帧的函数
-def find_nearest_neighbors(frames, frame, num_neighbors):
-    # 使用某种特征提取方法，比如像素值展平
-    frame_features = [np.array(f[1]).flatten() for f in frames]
-    nbrs = NearestNeighbors(n_neighbors=num_neighbors, algorithm='auto').fit(frame_features)
-    frame_feature = np.array(frame).flatten().reshape(1, -1)
-    distances, indices = nbrs.kneighbors(frame_feature)
-    return indices[0]
-
-
-# 自定义数据集类
-class FramePairsDataset(Dataset):
+def _convert_image_to_rgb(image):
+    return image.convert("RGB")
+def clip_transform(n_px):
+    return Compose([
+        Resize(n_px, interpolation=BICUBIC),
+        CenterCrop(n_px),
+        _convert_image_to_rgb,
+        ToTensor(),
+        Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
+    ])
+class FrameDataset(Dataset):
     def __init__(self, dir1, dir2, transform=None):
-        self.dir1_frames = load_frames_from_dir(dir1)
-        self.dir2_frames = load_frames_from_dir(dir2)
-        self.transform = transform
-        self.pairs = self.create_pairs()
+        self.dir1 = dir1
+        self.dir2 = dir2
+        self.transform = transform if transform is not None else clip_transform(224)
+        self.frames1 = sorted([f for f in os.listdir(dir1) if f.endswith('.png')])
+        self.frames2 = sorted([f for f in os.listdir(dir2) if f.endswith('.png')])
+        self.total_frames = len(self.frames1)
+        self.pairs = self.generate_pairs()
 
-    def create_pairs(self):
+
+
+    def generate_pairs(self):
         pairs = []
-        total_frames = len(self.dir1_frames)
-        num_neighbors = max(1, int(total_frames * 0.05))
+        # set A: 5% of the total frames nearby selected frame in dir1
+        # Set B: 5% of the total frames nearby selected frame in dir2
+        for i, frame in enumerate(self.frames1):
+            start= max(0, i - self.total_frames // 20)
+            end = min(self.total_frames, i + self.total_frames // 20 + 1)
+            setA = set(self.frames1[start:end])
+            setB = set(self.frames2[start:end])
 
-        for i, (filenameA, frameA) in enumerate(self.dir1_frames):
-            setA_indices = find_nearest_neighbors(self.dir1_frames, frameA, num_neighbors)
-            frameB = self.dir2_frames[i][1]
-            setB_indices = find_nearest_neighbors(self.dir2_frames, frameB, num_neighbors)
-            setA = [self.dir1_frames[idx][1] for idx in setA_indices]
-            setB = [self.dir2_frames[idx][1] for idx in setB_indices]
+        # positive pairs
+            positive_pool = list(setA.union(setB))
+            positive_frame = random.choice(positive_pool)
+            if positive_frame in setA:
+                pairs.append((os.path.join(self.dir1, frame), os.path.join(self.dir1, positive_frame), 0))
+            else:
+                pairs.append((os.path.join(self.dir1, frame), os.path.join(self.dir2, positive_frame), 0))
 
-            # 创建正样本对
-            positive_pair = (frameA, random.choice(setA + setB))
-            pairs.append((positive_pair, 1))  # 1 表示正样本
+        # negative pairs
+            negative_pool1 = set(self.frames1) - setA
+            negative_pool2 = set(self.frames2) - setB
+            negative_pool = list(negative_pool1.union(negative_pool2))
+            negative_frame = random.choice(negative_pool)
+            if positive_frame in negative_pool1:
+                pairs.append((os.path.join(self.dir1, frame), os.path.join(self.dir1, negative_frame), 1))
+            else:
+                pairs.append((os.path.join(self.dir1, frame), os.path.join(self.dir2, negative_frame), 1))
 
-            # 创建负样本对
-            all_frames = self.dir1_frames + self.dir2_frames
-            setA_setB_indices = set(setA_indices).union(setB_indices)
-            negative_candidates = [all_frames[idx][1] for idx in range(total_frames * 2) if
-                                   idx not in setA_setB_indices]
-            negative_pair = (frameA, random.choice(negative_candidates))
-            pairs.append((negative_pair, 0))  # 0 表示负样本
 
         return pairs
 
@@ -66,19 +67,25 @@ class FramePairsDataset(Dataset):
         return len(self.pairs)
 
     def __getitem__(self, idx):
-        (frameA, frameB), label = self.pairs[idx]
+        frameA_path, frameB_path, label = self.pairs[idx]
+        frameA = Image.open(frameA_path).convert('RGB')
+        frameB = Image.open(frameB_path).convert('RGB')
+
         if self.transform:
             frameA = self.transform(frameA)
             frameB = self.transform(frameB)
-        return (frameA, frameB), label
 
+        return frameA, frameB, label
 
-# 定义图像变换
-transform = transforms.Compose([
-    transforms.Resize((128, 128)),
-    transforms.ToTensor(),
-])
+# 设置目录路径
+dir1 = 'path_to_dir1'
+dir2 = 'path_to_dir2'
 
-# 创建数据集和数据加载器
-dataset = FramePairsDataset('dir1', 'dir2', transform=transform)
+# 初始化数据集和DataLoader
+dataset = FrameDataset(dir1, dir2, transform=None)
 dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+
+# 示例：迭代DataLoader
+for frameA, frameB, label in dataloader:
+    print(frameA.size(), frameB.size(), label)
+    break
