@@ -1,29 +1,35 @@
-import os
-import torch
-import torch.nn as nn
+import numpy as np
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import torch.nn.functional as F
+import torch
+from PIL import Image
 import clip
-from ada_dataloader import FrameDataset, clip_transform
-from torch.utils.data import DataLoader
-from ada_clip_network import AdaClipNetwork, ContrastiveLoss
-from torch.utils.tensorboard import SummaryWriter
+from ada_clip_network import AdaClipNetwork
+from config import config
 
 
+def preprocess_image(image_path, preprocess):
+    image = Image.open(image_path)
+    return preprocess(image).unsqueeze(0)
 
-#predict 函数中 threshold和sigma的确定!
-def predict(model, img1, img2, transform, device, threshold, sigma):
+def predict(model, img1_path, img2_path, device, threshold):
+    model.to(device)
     model.eval()
+
+    # 加载 CLIP 的预处理函数
+    _, preprocess = clip.load("ViT-B/32", device=device)
+
+    # 对图像进行预处理
+    img1 = preprocess_image(img1_path, preprocess).to(device)
+    img2 = preprocess_image(img2_path, preprocess).to(device)
+
+    # 进行预测
     with torch.no_grad():
-        img1 = transform(img1).unsqueeze(0).to(device)
-        img2 = transform(img2).unsqueeze(0).to(device)
-        output1, output2 = model(img1, img2)
+        output1, output2 = model.inference(img1, img2)
         euclidean_distance = F.pairwise_distance(output1, output2).item()
-
-
         prediction = 1 if euclidean_distance >= threshold else 0
-        # 计算相似性得分
-        similarity_score = torch.exp(-euclidean_distance / (2 * sigma ** 2)).item()
-    return euclidean_distance,  prediction, similarity_score
+
+    return euclidean_distance, prediction
 
 def validate(model, dataloader, criterion, device, threshold):
     model.eval()
@@ -49,12 +55,17 @@ def validate(model, dataloader, criterion, device, threshold):
     return avg_loss, accuracy
 
 
-'''
-# 验证集DataLoader（假设已经定义好）
-validation_dataset = FrameDataset('path_to_validation_dir1', 'path_to_validation_dir2', transform=transform)
-validation_dataloader = DataLoader(validation_dataset, batch_size=32, shuffle=False)
+if __name__ == "__main__":
+    img1_path = "/home/luno/dev/Adaclip_data/validation_threshold/Video1/frame_53.png"
+    img2_path = "/home/luno/dev/Adaclip_data/validation_threshold/Video2/frame_53.png"
+    model_path = "/home/luno/dev/Ada_CLIP/model_weights/epoch_25.pth"
+    threshold = 0.5  # 根据需求设置阈值
 
-# 执行验证
-avg_loss, accuracy = validate(model, validation_dataloader, criterion, device, threshold=0.5)
-print(f'Validation Loss: {avg_loss}, Validation Accuracy: {accuracy}')
-'''
+    device = config.device
+
+    model = AdaClipNetwork(device=device)
+    model.load_state_dict(torch.load(model_path))
+
+    euclidean_distance, prediction = predict(model, img1_path, img2_path, device, threshold)
+    print(f"Euclidean Distance: {euclidean_distance}")
+    print(f"Prediction: {prediction}")
