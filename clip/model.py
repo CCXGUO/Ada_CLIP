@@ -221,16 +221,23 @@ class VisionTransformer(nn.Module):
         self.proj = nn.Parameter(scale * torch.randn(width, output_dim))
 
     def forward(self, x: torch.Tensor):
-        x = self.conv1(x)  # shape = [*, width, grid, grid]
-        x = x.reshape(x.shape[0], x.shape[1], -1)  # shape = [*, width, grid ** 2]
-        x = x.permute(0, 2, 1)  # shape = [*, grid ** 2, width]
-        x = torch.cat([self.class_embedding.to(x.dtype) + torch.zeros(x.shape[0], 1, x.shape[-1], dtype=x.dtype, device=x.device), x], dim=1)  # shape = [*, grid ** 2 + 1, width]
+        x = self.conv1(x)  # shape = [batch_size, width, grid, grid]
+        print(f"After conv1, x shape: {x.shape}")
+        batch_size, num_channels, grid_h, grid_w = x.shape
+        x = x.reshape(batch_size, num_channels, grid_h * grid_w)  # shape = [batch_size, width, grid ** 2]
+        x = x.permute(0, 2, 1)  # shape = [batch_size, grid ** 2, width]
+        print(f"After reshape and permute, x shape: {x.shape}")
+
+        class_token = self.class_embedding.to(x.dtype).unsqueeze(0).unsqueeze(1).expand(batch_size, -1, -1)  # shape = [batch_size, 1, width]
+        print(f"class_token shape: {class_token.shape}")
+
+        x = torch.cat([class_token, x], dim=1)  # shape = [batch_size, grid ** 2 + 1, width]
         x = x + self.positional_embedding.to(x.dtype)
         x = self.ln_pre(x)
 
-        x = x.permute(1, 0, 2)  # NLD -> LND
+        x = x.permute(1, 0, 2)  # shape = [grid ** 2 + 1, batch_size, width]
         x = self.transformer(x)
-        x = x.permute(1, 0, 2)  # LND -> NLD
+        x = x.permute(1, 0, 2)  # shape = [batch_size, grid ** 2 + 1, width]
 
         x = self.ln_post(x[:, 0, :])
 
@@ -373,7 +380,7 @@ class CLIP(nn.Module):
 
 
 def convert_weights(model: nn.Module):
-    """Convert applicable model parameters to fp16"""
+    """Convert applicable model_weights parameters to fp16"""
 
     def _convert_weights_to_fp16(l):
         if isinstance(l, (nn.Conv1d, nn.Conv2d, nn.Linear)):

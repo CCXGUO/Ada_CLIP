@@ -92,29 +92,29 @@ def available_models() -> List[str]:
 
 
 def load(name: str, device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu", jit: bool = False, download_root: str = None):
-    """Load a CLIP model
+    """Load a CLIP model_weights
 
     Parameters
     ----------
     name : str
-        A model name listed by `clip.available_models()`, or the path to a model checkpoint containing the state_dict
+        A model_weights name listed by `clip.available_models()`, or the path to a model_weights checkpoint containing the state_dict
 
     device : Union[str, torch.device]
-        The device to put the loaded model
+        The device to put the loaded model_weights
 
     jit : bool
-        Whether to load the optimized JIT model or more hackable non-JIT model (default).
+        Whether to load the optimized JIT model_weights or more hackable non-JIT model_weights (default).
 
     download_root: str
-        path to download the model files; by default, it uses "~/.cache/clip"
+        path to download the model_weights files; by default, it uses "~/.cache/clip"
 
     Returns
     -------
-    model : torch.nn.Module
-        The CLIP model
+    model_weights : torch.nn.Module
+        The CLIP model_weights
 
     preprocess : Callable[[PIL.Image], torch.Tensor]
-        A torchvision transform that converts a PIL image into a tensor that the returned model can take as its input
+        A torchvision transform that converts a PIL image into a tensor that the returned model_weights can take as its input
     """
     if name in _MODELS:
         model_path = _download(_MODELS[name], download_root or os.path.expanduser("~/.cache/clip"))

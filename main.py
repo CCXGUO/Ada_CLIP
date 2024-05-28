@@ -29,18 +29,18 @@ net = ada_clip_network.AdaClipNetwork(device).to(device)
 criterion = ada_clip_network.ContrastiveLoss()
 optimizer = torch.optim.Adam(net.mlp.parameters(), lr)
 
-#train model
+#train model_weights
 ada_clip_train.train_model(net, dataloader, criterion, optimizer, num_epochs, save_path)
 #
 # #predict
 # # 加载模型权重
-# model = AdaClipNetwork(device).to(device)
-# model.load_state_dict(torch.load('model_weights/epoch_25.pth'))
-# model.eval()  # 切换模型到评估模式
+# model_weights = AdaClipNetwork(device).to(device)
+# model_weights.load_state_dict(torch.load('model_weights/epoch_25.pth'))
+# model_weights.eval()  # 切换模型到评估模式
 
 # transform
 # transform = clip_transform()
-# ada_clip_predict_validate.predict(model, img1, img2, transform, device, threshold, sigma)
+# ada_clip_predict_validate.predict(model_weights, img1, img2, transform, device, threshold, sigma)
 
 '''使用TensorBoard
 

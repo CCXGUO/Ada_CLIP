@@ -8,8 +8,6 @@ import ada_dataloader
 from torch.utils.data import DataLoader
 
 
-
-
 writer = SummaryWriter('runs/adaCLIP_experiment')
 # 训练循环
 def train_model(model, dataloader, criterion, optimizer, num_epochs,save_path):
@@ -59,5 +57,5 @@ if __name__ == "__main__":
     criterion = ada_clip_network.ContrastiveLoss()
     optimizer = torch.optim.Adam(net.mlp.parameters(), lr)
 
-    # train model
+    # train model_weights
     train_model(net, dataloader, criterion, optimizer, num_epochs, save_path)

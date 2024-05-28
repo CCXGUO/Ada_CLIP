@@ -22,6 +22,7 @@ class AdaClipNetwork(nn.Module):
 
     def forward_once(self, image):
         image_features = self.clip_model.encode_image(image).float()
+
         output = self.mlp(image_features)
         return output
 

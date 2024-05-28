@@ -54,6 +54,7 @@ def rename_frames(directory):
 
 
 # 使用方法
-directory = '/home/luno/dev/Ada_CLIP/validation_threshold/Video1'  # 替换为你的文件夹路径
-num_to_remove = 68
-
+directory = 'C:/Users/17839/dev/Data/AdaClip/validata/Video1'  # 替换为你的文件夹路径
+num_to_remove = 15
+remove_images_evenly(directory, num_to_remove)
+rename_frames(directory)
